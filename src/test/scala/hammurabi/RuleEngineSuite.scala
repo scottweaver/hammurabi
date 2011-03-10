@@ -1,0 +1,475 @@
+package hammurabi
+
+import org.scalatest.junit.AssertionsForJUnit
+import org.junit.Test
+
+import Rule._
+
+/**
+ * @author Mario Fusco
+ */
+
+class RuleEngineSuite extends AssertionsForJUnit {
+
+  @Test def allItemsFromWorkingSetBelongToExpectedType = {
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val tom = new Person("Tom")
+    val bob = new Person("Bob")
+
+    val workingMemory = WorkingMemory(joe, fred, "fred") + tom + "tom" + bob
+
+    val allPersons = workingMemory.all(classOf[Person])
+    assert(allPersons forall (_.isInstanceOf[Person]))
+    expect(4)(allPersons.length)
+
+    val shortNamePersons = workingMemory.allHaving(classOf[Person])(_.name.length < 4)
+    expect(3)(shortNamePersons.length)
+  }
+
+  @Test def applyedRule = {
+    val joe = new Person("Joe")
+
+    val rule = "Joe is in position 2" let {
+      val p: Person = joe
+      when {
+        p.name == "Joe"
+      } then {
+        p.pos = 2
+      }
+    }
+
+    assert(joe.pos != 2)
+    rule.exec
+    assert(joe.pos == 2)
+  }
+
+  @Test def notApplyedRule = {
+    val fred = new Person("Fred")
+
+    val rule = "Joe is in position 2" let {
+      val p: Person = fred
+      when {
+        p.name == "Joe"
+      } then {
+        p.pos = 2
+      }
+    }
+
+    assert(fred.pos != 2)
+    rule.exec
+    assert(fred.pos != 2)
+  }
+
+  @Test def applyedRuleInRuleEngine = {
+    val joe = new Person("Joe")
+
+    val rule = "Joe is in position 2" let {
+      val p: Person = joe
+      when {
+        p.name == "Joe"
+      } then {
+        p.pos = 2
+      }
+    }
+
+    assert(joe.pos != 2)
+    RuleEngine(rule) execOn WorkingMemory(Set())
+    assert(joe.pos == 2)
+  }
+
+  @Test def singleRuleInRuleEngine = {
+    val rule = "Joe is in position 2" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Joe"
+      } then {
+        p.pos = 2
+      }
+    }
+
+    val ruleEngine = RuleEngine(rule)
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
+
+    assert(joe.pos != 2)
+    assert(fred.pos != 2)
+
+    ruleEngine execOn workingMemory
+
+    assert(fred.pos != 2)
+    assert(joe.pos == 2)
+  }
+
+  @Test def singleConditionedRuleInRuleEngine = {
+    val rule = "Joe is in position 2" let {
+      val p = kindOf[Person] having (_.name == "Joe")
+      then {
+        p.pos = 2
+      }
+    }
+
+    val ruleEngine = RuleEngine(rule)
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
+
+    assert(joe.pos != 2)
+    assert(fred.pos != 2)
+
+    ruleEngine execOn workingMemory
+
+    assert(fred.pos != 2)
+    assert(joe.pos == 2)
+  }
+
+  @Test def singleCombinedRuleInRuleEngine = {
+    val rule = "Person to Joe’s immediate right is wearing blue pants" let {
+      val p1 = any(kindOf[Person])
+      val p2 = any(kindOf[Person])
+      when {
+        (p1.name equals "Joe") && (p2.pos equals p1.pos + 1)
+      } then {
+        p2.color = "blue"
+      }
+    }
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    joe.pos = 2
+    fred.pos = 3
+    val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
+
+    assert(fred.color != "blue")
+    RuleEngine(rule) execOn workingMemory
+    assert(fred.color == "blue")
+  }
+
+  @Test def multipleAndCombinedRules = {
+    val rule1 = "Joe is in position 2" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Joe"
+      } then {
+        p.pos = 2
+      }
+    }
+
+    val rule2 = "Fred is in position 3" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Fred"
+      } then {
+        p.pos = 3
+      }
+    }
+
+    val rule3 = "Person to Joe’s immediate right is wearing blue pants" let {
+      val p1 = any(kindOf[Person])
+      val p2 = any(kindOf[Person])
+      when {
+        (p1.name equals "Joe") && (p2.pos equals p1.pos + 1)
+      } then {
+        p2.color = "blue"
+      }
+    }
+
+    val ruleEngine = RuleEngine(rule3, rule1, rule2)
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
+
+    assert(fred.color != "blue")
+    ruleEngine execOn workingMemory
+    assert(fred.color == "blue")
+  }
+
+  @Test def multipleAndCombinedRulesProducingObjects = {
+    val rule1 = "Joe is in position 2" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Joe"
+      } then {
+        p.pos = 2
+        produce(new Person("Fred"))
+      }
+    }
+
+    val rule2 = "Fred is in position 3" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Fred"
+      } then {
+        p.pos = 3
+        remove(new Person("Bob"))
+      }
+    }
+
+    val rule3 = "Person to Joe’s immediate right is wearing blue pants" let {
+      val p1 = any(kindOf[Person])
+      val p2 = any(kindOf[Person])
+      when {
+        (p1.name equals "Joe") && (p2.pos equals p1.pos + 1)
+      } then {
+        p2.color = "blue"
+        remove(new Person("Tom"))
+      }
+    }
+
+    val ruleEngine = RuleEngine(rule3, rule1, rule2)
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(tom, joe, bob)
+
+    ruleEngine execOn workingMemory
+    assert((workingMemory all classOf[Person]).size == 2)
+    val fred = (workingMemory all classOf[Person] filter (_.name == "Fred")).head
+    assert(fred.color == "blue")
+  }
+
+  @Test def golfersProblem = {
+    var availablePos = (1 to 4).toSet
+    var availableColors = Set("blue", "plaid", "red", "orange")
+
+    val ruleSet = Set(
+      "Unique positions" let {
+        val p = any(kindOf[Person])
+        when {
+          (availablePos.size equals 1) and (p.pos equals 0)
+        } then {
+          p.pos = availablePos.head
+        }
+      },
+
+      "Unique colors" let {
+        val p = any(kindOf[Person])
+        when {
+          (availableColors.size equals 1) and (p.color == null)
+        } then {
+          p.color = availableColors.head
+        }
+      },
+
+      "Joe is in position 2" let {
+        val p = any(kindOf[Person])
+        when {
+          p.name equals "Joe"
+        } then {
+          p.pos = 2
+          availablePos = availablePos - p.pos
+        }
+      },
+
+      "Person to Fred’s immediate right is wearing blue pants" let {
+        val p1 = any(kindOf[Person])
+        val p2 = any(kindOf[Person])
+        when {
+          (p1.name equals "Fred") and (p2.pos equals p1.pos + 1)
+        } then {
+          p2.color = "blue"
+          availableColors = availableColors - p2.color
+        }
+      },
+
+      "Fred isn't in position 4" let {
+        val possibleFredPos = availablePos - 4
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Fred") and (possibleFredPos.size == 1)
+        } then {
+          p.pos = possibleFredPos.head
+          availablePos = availablePos - p.pos
+        }
+      },
+
+      "Tom isn't in position 1 or 4" let {
+        val possibleTomPos = availablePos - 1 - 4
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Tom") and (possibleTomPos.size equals 1)
+        } then {
+          p.pos = possibleTomPos.head
+          availablePos = availablePos - p.pos
+        }
+      },
+
+      "Bob is wearing plaid pants" let {
+        val p = any(kindOf[Person])
+        when {
+          p.name equals "Bob"
+        } then {
+          p.color = "plaid"
+          availableColors = availableColors - p.color
+        }
+      },
+
+      "Tom isn't wearing orange pants" let {
+        val possibleTomColors = availableColors - "orange"
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Tom") and (possibleTomColors.size equals 1)
+        } then {
+          p.color = possibleTomColors.head
+          availableColors = availableColors - p.color
+        }
+      }
+    )
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(tom, joe, fred, bob)
+
+    RuleEngine(ruleSet) execOn workingMemory
+
+    assert(tom.pos == 3)
+    assert(tom.color == "red")
+    assert(joe.pos == 2)
+    assert(joe.color == "blue")
+    assert(fred.pos == 1)
+    assert(fred.color == "orange")
+    assert(bob.pos == 4)
+    assert(bob.color == "plaid")
+
+    println(tom)
+    println(joe)
+    println(fred)
+    println(bob)
+  }
+
+  @Test def golfersProblemSugared = {
+    var availablePos = (1 to 4).toSet
+    var availableColors = Set("blue", "plaid", "red", "orange")
+
+    val assign = new {
+      def color(color: String) = new {
+        def to(person: Person) = {
+          person.color = color
+          availableColors = availableColors - color
+        }
+      }
+
+      def position(pos: Int) = new {
+        def to(person: Person) = {
+          person.pos = pos
+          availablePos = availablePos - pos
+        }
+      }
+    }
+
+    val ruleSet = Set(
+      rule ("Unique positions") let {
+        val p = any(kindOf[Person])
+        when {
+          (availablePos.size equals 1) and (p.pos equals 0)
+        } then {
+          assign position availablePos.head to p
+        }
+      },
+
+      rule ("Unique colors") let {
+        val p = any(kindOf[Person])
+        when {
+          (availableColors.size equals 1) and (p.color == null)
+        } then {
+          assign color availableColors.head to p
+        }
+      },
+
+      rule ("Joe is in position 2") let {
+        val p = any(kindOf[Person])
+        when {
+          p.name equals "Joe"
+        } then {
+          assign position 2 to p
+        }
+      },
+
+      rule ("Person to Fred’s immediate right is wearing blue pants") let {
+        val p1 = any(kindOf[Person])
+        val p2 = any(kindOf[Person])
+        when {
+          (p1.name equals "Fred") and (p2.pos equals p1.pos + 1)
+        } then {
+          assign color "blue" to p2
+        }
+      },
+
+      rule ("Fred isn't in position 4") let {
+        val possibleFredPos = availablePos - 4
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Fred") and (possibleFredPos.size == 1)
+        } then {
+          assign position possibleFredPos.head to p
+        }
+      },
+
+      rule ("Tom isn't in position 1 or 4") let {
+        val possibleTomPos = availablePos - 1 - 4
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Tom") and (possibleTomPos.size equals 1)
+        } then {
+          assign position possibleTomPos.head to p
+        }
+      },
+
+      rule ("Bob is wearing plaid pants") let {
+        val p = any(kindOf[Person])
+        when {
+          p.name equals "Bob"
+        } then {
+          assign color "plaid" to p
+        }
+      },
+
+      rule ("Tom isn't wearing orange pants") let {
+        val possibleTomColors = availableColors - "orange"
+        val p = any(kindOf[Person])
+        when {
+          (p.name equals "Tom") and (possibleTomColors.size equals 1)
+        } then {
+          assign color possibleTomColors.head to p
+        }
+      }
+    )
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+
+    RuleEngine(ruleSet) execOn WorkingMemory(tom, joe, fred, bob)
+
+    assert(tom.pos == 3)
+    assert(tom.color == "red")
+    assert(joe.pos == 2)
+    assert(joe.color == "blue")
+    assert(fred.pos == 1)
+    assert(fred.color == "orange")
+    assert(bob.pos == 4)
+    assert(bob.color == "plaid")
+
+    println(tom)
+    println(joe)
+    println(fred)
+    println(bob)
+  }
+}
+
