@@ -3,7 +3,7 @@ package hammurabi
 /**
  * @author Mario Fusco
  */
-class CircularIterator[A](t: Traversable[A])(condition: => Boolean) extends Iterator[A] {
+class CircularIterator[A](t: Traversable[A]) extends Iterator[A] {
   var i = t.toIterator
 
   def next = {
@@ -11,5 +11,5 @@ class CircularIterator[A](t: Traversable[A])(condition: => Boolean) extends Iter
     i.next
   }
 
-  def hasNext = condition
+  def hasNext = true
 }

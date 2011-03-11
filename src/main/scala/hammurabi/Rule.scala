@@ -47,7 +47,10 @@ object Rule {
   def produce(item: Any) = currentContext + item
   def remove(item: Any) = currentContext - item
 
-  // TODO
-  def exitWith(result: Any) = result
-  def fail(message: String) = message
+  def exitWith(result: Any) = currentContext exitWith result
+  def failWith(message: String) = throw FailedExecutionException(message)
+}
+
+case class FailedExecutionException(message: String) extends Exception {
+  override def getLocalizedMessage = "Execution fail caused by: " + message
 }

@@ -11,10 +11,21 @@ class RuleEngine(rules: Traversable[Rule]) {
 
   def this(rules: Rule*) = this(rules.toTraversable)
 
-  def execOn(workingMemory: WorkingMemory) = {
-    var notFiredRules = 0
-    val i = new CircularIterator[RuleEvaluator](rules map (new RuleEvaluator(_, workingMemory)))(notFiredRules < rules.size)
-    while (i.hasNext) if (i.next.evaluate) notFiredRules = 0 else notFiredRules += 1
+  var result: Option[Any] = None
+
+  def execOn(workingMemory: WorkingMemory): Option[Any] = {
+    val evaluators = rules map (new RuleEvaluator(this, _, workingMemory))
+    val i = new CircularIterator[RuleEvaluator](evaluators)
+    evaluateNextRule(i, rules.size, 0)
+  }
+
+  private def evaluateNextRule(i: Iterator[RuleEvaluator], rulesNumber: Int, notFiredRules: Int): Option[Any] = {
+    if (notFiredRules >= rulesNumber) return None
+    val counter = if (i.next.evaluate) 0 else notFiredRules + 1
+    result match {
+      case result: Some[_] => result
+      case _ => evaluateNextRule(i, rulesNumber, counter)
+    }
   }
 }
 
@@ -23,10 +34,10 @@ object RuleEngine {
   def apply(rules: Traversable[Rule]) = new RuleEngine(rules)
 }
 
-private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory) {
+private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, workingMemory: WorkingMemory) {
+  val executedSets = new mutable.HashSet[RuleExecutionSet]()
   var isFirstExecution = true
   var valuesCombinator: ValuesCombinator = _
-  val executedSets = new mutable.HashSet[RuleExecutionSet]()
   var currentExecutionSet: RuleExecutionSet = _
 
   def evaluate: Boolean = {
@@ -85,6 +96,8 @@ println("*** EXEC " + rule + " on " + currentExecutionSet)
 
   def +(item: Any) = workingMemory + item
   def -(item: Any) = workingMemory - item
+
+  def exitWith(result: Any) = ruleEngine.result = Some(result)
 }
 
 private class RuleExecutionSet {

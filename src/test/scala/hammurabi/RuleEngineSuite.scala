@@ -2,6 +2,7 @@ package hammurabi
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
+import org.junit.Assert._
 
 import Rule._
 
@@ -103,6 +104,34 @@ class RuleEngineSuite extends AssertionsForJUnit {
 
     assert(fred.pos != 2)
     assert(joe.pos == 2)
+  }
+
+  @Test def failingRuleInRuleEngine = {
+    val rule = "Joe is in position 2" let {
+      val p = any(kindOf[Person])
+      when {
+        p.name equals "Joe"
+      } then {
+        p.pos = 2
+        failWith("This rule must fail!")
+      }
+    }
+
+    val ruleEngine = RuleEngine(rule)
+
+    val tom = new Person("Tom")
+    val joe = new Person("Joe")
+    val fred = new Person("Fred")
+    val bob = new Person("Bob")
+    val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
+
+    try {
+      val res = RuleEngine(rule) execOn workingMemory
+      fail("This Executiona must fail")
+    } catch {
+      case e: FailedExecutionException => assert(true)
+      case _ => fail("This Executiona must fail with a FailedExecutionException")
+    }
   }
 
   @Test def singleConditionedRuleInRuleEngine = {
@@ -225,6 +254,7 @@ class RuleEngineSuite extends AssertionsForJUnit {
       } then {
         p2.color = "blue"
         remove(new Person("Tom"))
+        exitWith(p2)
       }
     }
 
@@ -235,9 +265,10 @@ class RuleEngineSuite extends AssertionsForJUnit {
     val bob = new Person("Bob")
     val workingMemory = WorkingMemory(tom, joe, bob)
 
-    ruleEngine execOn workingMemory
+    val result = ruleEngine.execOn(workingMemory).get
     assert((workingMemory all classOf[Person]).size == 2)
     val fred = (workingMemory all classOf[Person] filter (_.name == "Fred")).head
+    assertEquals(fred, result)
     assert(fred.color == "blue")
   }
 
