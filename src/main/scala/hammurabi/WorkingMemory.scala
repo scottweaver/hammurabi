@@ -23,8 +23,19 @@ class WorkingMemory(var workingSet: List[_]) {
     }).asInstanceOf[List[A]]
   }
 
+  def first[A](implicit manifest: Manifest[A]): Option[A] =
+    firstOrNone(all(manifest.erasure.asInstanceOf[Class[A]]))
+
   def allHaving[A](clazz: Class[A])(condition: A => Boolean): List[A] = {
     all(clazz) filter condition
+  }
+
+  def firstHaving[A](condition: A => Boolean)(implicit manifest: Manifest[A]): Option[A] =
+    firstOrNone(allHaving(manifest.erasure.asInstanceOf[Class[A]])(condition))
+
+  private def firstOrNone[A](list: List[A]): Option[A] = list match {
+    case x :: xs => Some(x)
+    case _ => None
   }
 
   def +(item: Any) = {

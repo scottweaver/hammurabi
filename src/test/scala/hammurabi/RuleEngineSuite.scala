@@ -488,14 +488,139 @@ class RuleEngineSuite extends AssertionsForJUnit {
 
     RuleEngine(ruleSet) execOn WorkingMemory(tom, joe, fred, bob)
 
-    assert(tom.pos == 3)
-    assert(tom.color == "red")
-    assert(joe.pos == 2)
-    assert(joe.color == "blue")
-    assert(fred.pos == 1)
-    assert(fred.color == "orange")
-    assert(bob.pos == 4)
-    assert(bob.color == "plaid")
+    assertEquals(3, tom.pos)
+    assertEquals("red", tom.color)
+    assertEquals(2, joe.pos)
+    assertEquals("blue", joe.color)
+    assertEquals(1, fred.pos)
+    assertEquals("orange", fred.color)
+    assertEquals(4, bob.pos)
+    assertEquals("plaid", bob.color)
+
+    println(tom)
+    println(joe)
+    println(fred)
+    println(bob)
+  }
+
+  @Test def golfersProblemImmutable = {
+    var availablePos = (1 to 4).toSet
+    var availableColors = Set("blue", "plaid", "red", "orange")
+
+    val assign = new {
+      def color(color: String) = new {
+        def to(person: IPerson) = {
+          remove(person)
+          produce(person.copy(color = color))
+          availableColors = availableColors - color
+        }
+      }
+
+      def position(pos: Int) = new {
+        def to(person: IPerson) = {
+          remove(person)
+          produce(person.copy(pos = pos))
+          availablePos = availablePos - pos
+        }
+      }
+    }
+
+    val ruleSet = Set(
+      rule ("Unique positions") let {
+        val p = any(kindOf[IPerson])
+        when {
+          (availablePos.size equals 1) and (p.pos equals 0)
+        } then {
+          assign position availablePos.head to p
+        }
+      },
+
+      rule ("Unique colors") let {
+        val p = any(kindOf[IPerson])
+        when {
+          (availableColors.size equals 1) and (p.color == null)
+        } then {
+          assign color availableColors.head to p
+        }
+      },
+
+      rule ("Joe is in position 2") let {
+        val p = any(kindOf[IPerson])
+        when {
+          p.name equals "Joe"
+        } then {
+          assign position 2 to p
+        }
+      },
+
+      rule ("Person to Fred’s immediate right is wearing blue pants") let {
+        val p1 = any(kindOf[IPerson])
+        val p2 = any(kindOf[IPerson])
+        when {
+          (p1.name equals "Fred") and (p2.pos equals p1.pos + 1)
+        } then {
+          assign color "blue" to p2
+        }
+      },
+
+      rule ("Fred isn't in position 4") let {
+        val possibleFredPos = availablePos - 4
+        val p = any(kindOf[IPerson])
+        when {
+          (p.name equals "Fred") and (possibleFredPos.size == 1)
+        } then {
+          assign position possibleFredPos.head to p
+        }
+      },
+
+      rule ("Tom isn't in position 1 or 4") let {
+        val possibleTomPos = availablePos - 1 - 4
+        val p = any(kindOf[IPerson])
+        when {
+          (p.name equals "Tom") and (possibleTomPos.size equals 1)
+        } then {
+          assign position possibleTomPos.head to p
+        }
+      },
+
+      rule ("Bob is wearing plaid pants") let {
+        val p = any(kindOf[IPerson])
+        when {
+          p.name equals "Bob"
+        } then {
+          assign color "plaid" to p
+        }
+      },
+
+      rule ("Tom isn't wearing orange pants") let {
+        val possibleTomColors = availableColors - "orange"
+        val p = any(kindOf[IPerson])
+        when {
+          (p.name equals "Tom") and (possibleTomColors.size equals 1)
+        } then {
+          assign color possibleTomColors.head to p
+        }
+      }
+    )
+
+    val workingMemory = WorkingMemory(IPerson("Tom"), IPerson("Joe"), IPerson("Fred"), IPerson("Bob"))
+    RuleEngine(ruleSet) execOn workingMemory
+
+    assertEquals(4, workingMemory.all(classOf[IPerson]).size)
+
+    val tom = workingMemory.firstHaving[IPerson](_.name == "Tom").get
+    val joe = workingMemory.firstHaving[IPerson](_.name == "Joe").get
+    val fred = workingMemory.firstHaving[IPerson](_.name == "Fred").get
+    val bob = workingMemory.firstHaving[IPerson](_.name == "Bob").get
+
+    assertEquals(3, tom.pos)
+    assertEquals("red", tom.color)
+    assertEquals(2, joe.pos)
+    assertEquals("blue", joe.color)
+    assertEquals(1, fred.pos)
+    assertEquals("orange", fred.color)
+    assertEquals(4, bob.pos)
+    assertEquals("plaid", bob.color)
 
     println(tom)
     println(joe)
