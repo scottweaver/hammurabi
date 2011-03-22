@@ -1,6 +1,6 @@
 package hammurabi
 
-import org.scalatest.junit.AssertionsForJUnit
+import org.scalatest.junit.JUnitSuite
 import org.junit.Test
 import org.junit.Assert._
 
@@ -10,7 +10,7 @@ import Rule._
  * @author Mario Fusco
  */
 
-class RuleEngineSuite extends AssertionsForJUnit {
+class RuleEngineSuite extends JUnitSuite {
 
   @Test def allItemsFromWorkingSetBelongToExpectedType = {
     val joe = new Person("Joe")

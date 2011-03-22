@@ -2,6 +2,7 @@ package hammurabi
 
 import collection._
 import Rule._
+import util.Logger
 
 /**
  * @author Mario Fusco
@@ -34,7 +35,7 @@ object RuleEngine {
   def apply(rules: Traversable[Rule]) = new RuleEngine(rules)
 }
 
-private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, workingMemory: WorkingMemory) {
+private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, workingMemory: WorkingMemory) extends Logger {
   val executedSets = new mutable.HashSet[RuleExecutionSet]()
   var isFirstExecution = true
   var valuesCombinator: ValuesCombinator = _
@@ -62,9 +63,9 @@ private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, worki
     currentExecutionSet = new RuleExecutionSet
     inContext {
       val ruleApp = rule.bind()
-println("EVAL " + rule + " on " + currentExecutionSet)
+      debug("EVAL " + rule + " on " + currentExecutionSet)
       if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleApp.condition()) {
-println("*** EXEC " + rule + " on " + currentExecutionSet)
+        info("EXEC " + rule + " on " + currentExecutionSet)
         executedSets += currentExecutionSet
         ruleApp.execution()
         return true

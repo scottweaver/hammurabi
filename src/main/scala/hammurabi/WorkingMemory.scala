@@ -1,12 +1,13 @@
 package hammurabi
 
 import collection.mutable.HashMap
+import util.Logger
 
 /**
  * @author Mario Fusco
  */
 
-class WorkingMemory(var workingSet: List[_]) {
+class WorkingMemory(var workingSet: List[_]) extends Logger {
 
   def this() = this(Nil)
 
@@ -39,13 +40,13 @@ class WorkingMemory(var workingSet: List[_]) {
   }
 
   def +(item: Any) = {
-println("Adding: " + item)
+    debug("Adding: " + item)
     addToInternalWorkingSets(item)
     this
   }
 
   def -(item: Any) = {
-println("Removing: " + item)
+    debug("Removing: " + item)
     removeFromInternalWorkingSets(item)
     this
   }
