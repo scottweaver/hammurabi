@@ -31,7 +31,7 @@ class RuleEngineSuite extends JUnitSuite {
   @Test def applyedRule = {
     val joe = new Person("Joe")
 
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p: Person = joe
       when {
         p.name == "Joe"
@@ -41,14 +41,14 @@ class RuleEngineSuite extends JUnitSuite {
     }
 
     assert(joe.pos != 2)
-    rule.exec
+    r.exec
     assert(joe.pos == 2)
   }
 
   @Test def notApplyedRule = {
     val fred = new Person("Fred")
 
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p: Person = fred
       when {
         p.name == "Joe"
@@ -58,14 +58,14 @@ class RuleEngineSuite extends JUnitSuite {
     }
 
     assert(fred.pos != 2)
-    rule.exec
+    r.exec
     assert(fred.pos != 2)
   }
 
   @Test def applyedRuleInRuleEngine = {
     val joe = new Person("Joe")
 
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p: Person = joe
       when {
         p.name == "Joe"
@@ -75,12 +75,12 @@ class RuleEngineSuite extends JUnitSuite {
     }
 
     assert(joe.pos != 2)
-    RuleEngine(rule) execOn WorkingMemory(Set())
+    RuleEngine(r) execOn WorkingMemory(Set())
     assert(joe.pos == 2)
   }
 
   @Test def singleRuleInRuleEngine = {
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Joe"
@@ -89,7 +89,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val ruleEngine = RuleEngine(rule)
+    val ruleEngine = RuleEngine(r)
 
     val tom = new Person("Tom")
     val joe = new Person("Joe")
@@ -107,7 +107,7 @@ class RuleEngineSuite extends JUnitSuite {
   }
 
   @Test def failingRuleInRuleEngine = {
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Joe"
@@ -117,7 +117,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val ruleEngine = RuleEngine(rule)
+    val ruleEngine = RuleEngine(r)
 
     val tom = new Person("Tom")
     val joe = new Person("Joe")
@@ -126,7 +126,7 @@ class RuleEngineSuite extends JUnitSuite {
     val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
 
     try {
-      val res = RuleEngine(rule) execOn workingMemory
+      val res = RuleEngine(r) execOn workingMemory
       fail("This Executiona must fail")
     } catch {
       case e: FailedExecutionException => assert(true)
@@ -135,14 +135,14 @@ class RuleEngineSuite extends JUnitSuite {
   }
 
   @Test def singleConditionedRuleInRuleEngine = {
-    val rule = "Joe is in position 2" let {
+    val r = rule("Joe is in position 2") let {
       val p = kindOf[Person] having (_.name == "Joe")
       then {
         p.pos = 2
       }
     }
 
-    val ruleEngine = RuleEngine(rule)
+    val ruleEngine = RuleEngine(r)
 
     val tom = new Person("Tom")
     val joe = new Person("Joe")
@@ -160,7 +160,7 @@ class RuleEngineSuite extends JUnitSuite {
   }
 
   @Test def singleCombinedRuleInRuleEngine = {
-    val rule = "Person to Joe’s immediate right is wearing blue pants" let {
+    val r = rule("Person to Joe’s immediate right is wearing blue pants") let {
       val p1 = any(kindOf[Person])
       val p2 = any(kindOf[Person])
       when {
@@ -179,12 +179,12 @@ class RuleEngineSuite extends JUnitSuite {
     val workingMemory = WorkingMemory(Set(tom, joe, fred, bob))
 
     assert(fred.color != "blue")
-    RuleEngine(rule) execOn workingMemory
+    RuleEngine(r) execOn workingMemory
     assert(fred.color == "blue")
   }
 
   @Test def multipleAndCombinedRules = {
-    val rule1 = "Joe is in position 2" let {
+    val rule1 = rule("Joe is in position 2") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Joe"
@@ -193,7 +193,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val rule2 = "Fred is in position 3" let {
+    val rule2 = rule("Fred is in position 3") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Fred"
@@ -202,7 +202,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val rule3 = "Person to Joe’s immediate right is wearing blue pants" let {
+    val rule3 = rule("Person to Joe’s immediate right is wearing blue pants") let {
       val p1 = any(kindOf[Person])
       val p2 = any(kindOf[Person])
       when {
@@ -226,7 +226,7 @@ class RuleEngineSuite extends JUnitSuite {
   }
 
   @Test def multipleAndCombinedRulesProducingObjects = {
-    val rule1 = "Joe is in position 2" let {
+    val rule1 = rule("Joe is in position 2") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Joe"
@@ -236,7 +236,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val rule2 = "Fred is in position 3" let {
+    val rule2 = rule("Fred is in position 3") let {
       val p = any(kindOf[Person])
       when {
         p.name equals "Fred"
@@ -246,7 +246,7 @@ class RuleEngineSuite extends JUnitSuite {
       }
     }
 
-    val rule3 = "Person to Joe’s immediate right is wearing blue pants" let {
+    val rule3 = rule("Person to Joe’s immediate right is wearing blue pants") let {
       val p1 = any(kindOf[Person])
       val p2 = any(kindOf[Person])
       when {
@@ -277,7 +277,7 @@ class RuleEngineSuite extends JUnitSuite {
     var availableColors = Set("blue", "plaid", "red", "orange")
 
     val ruleSet = Set(
-      "Unique positions" let {
+      rule("Unique positions") let {
         val p = any(kindOf[Person])
         when {
           (availablePos.size equals 1) and (p.pos equals 0)
@@ -286,7 +286,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Unique colors" let {
+      rule("Unique colors") let {
         val p = any(kindOf[Person])
         when {
           (availableColors.size equals 1) and (p.color == null)
@@ -295,7 +295,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Joe is in position 2" let {
+      rule("Joe is in position 2") let {
         val p = any(kindOf[Person])
         when {
           p.name equals "Joe"
@@ -305,7 +305,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Person to Fred’s immediate right is wearing blue pants" let {
+      rule("Person to Fred’s immediate right is wearing blue pants") let {
         val p1 = any(kindOf[Person])
         val p2 = any(kindOf[Person])
         when {
@@ -316,7 +316,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Fred isn't in position 4" let {
+      rule("Fred isn't in position 4") let {
         val possibleFredPos = availablePos - 4
         val p = any(kindOf[Person])
         when {
@@ -327,7 +327,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Tom isn't in position 1 or 4" let {
+      rule("Tom isn't in position 1 or 4") let {
         val possibleTomPos = availablePos - 1 - 4
         val p = any(kindOf[Person])
         when {
@@ -338,7 +338,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Bob is wearing plaid pants" let {
+      rule("Bob is wearing plaid pants") let {
         val p = any(kindOf[Person])
         when {
           p.name equals "Bob"
@@ -348,7 +348,7 @@ class RuleEngineSuite extends JUnitSuite {
         }
       },
 
-      "Tom isn't wearing orange pants" let {
+      rule("Tom isn't wearing orange pants") let {
         val possibleTomColors = availableColors - "orange"
         val p = any(kindOf[Person])
         when {

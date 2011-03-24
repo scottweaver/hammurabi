@@ -21,10 +21,7 @@ object Rule {
   private[hammurabi] val evaluationContext = new EvaluationContext
   def currentContext = evaluationContext.get()
 
-  implicit def stringToRule(s: String) = new RuleBuilder(s)
-  def rule(s: String) = new RuleBuilder(s)
-
-  class RuleBuilder(s: String) {
+  def rule(s: String) = new {
     def let(letClause: => RuleApplication) = new Rule(s, letClause _)
   }
 
