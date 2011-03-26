@@ -160,7 +160,7 @@ class RuleEngineSuite extends JUnitSuite {
   }
 
   @Test def singleCombinedRuleInRuleEngine = {
-    val r = rule("Person to Joe’s immediate right is wearing blue pants") let {
+    val r = rule("Person to Joe's immediate right is wearing blue pants") let {
       val p1 = any(kindOf[Person])
       val p2 = any(kindOf[Person])
       when {

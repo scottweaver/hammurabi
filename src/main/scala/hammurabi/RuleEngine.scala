@@ -44,7 +44,7 @@ private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, worki
   def evaluate: Boolean = {
     initFirstExecution
     if (execRule) return true
-    endOfFirstExecution
+    isFirstExecution = false
     while (valuesCombinator.hasNext) { if (execRule) return true }
     false
   }
@@ -52,11 +52,6 @@ private[hammurabi] class RuleEvaluator(ruleEngine: RuleEngine, rule: Rule, worki
   private def initFirstExecution = {
     isFirstExecution = true
     valuesCombinator = new ValuesCombinator
-  }
-
-  private def endOfFirstExecution = {
-    isFirstExecution = false
-    valuesCombinator.setup
   }
 
   private def execRule: Boolean = {
@@ -122,47 +117,24 @@ private class RuleExecutionSet {
 }
 
 private class ValuesCombinator {
-  val values = new mutable.ListBuffer[Traversable[_]]()
-  var valueIterators: Array[Iterator[_]] = _
-  var currentValues: Array[Any] = _
+  var values = List[List[Any]]()
+  lazy val valuesIterator = cartesianProduct(values).tail.flatten.toIterator
   var finished = false
-  var iteratorCounter = -1
-  var traversingIterator = false
 
   private[hammurabi] def hasNext() = !values.isEmpty && !finished
 
   private[hammurabi] def +=[A] (t: Traversable[A]): Option[A] = {
-    values += t
+    values = t.toList :: values
     finished = t.isEmpty
     if (finished) None else Some(t.head)
   }
 
-  private[hammurabi] def setup = {
-    valueIterators = (values map (_.toIterator)).toArray
-    valueIterators foreach (_.next)
-    currentValues = (values map (_.head)).toArray
-  }
-
   private[hammurabi] def next[A](clazz: Class[A]): Option[A] = {
-    val i = nextIteratorPosition
-    if (i == 0 || traversingIterator) traverseIterator(i)
-    if (finished) None else Some(currentValues(i).asInstanceOf[A])
+    finished = !valuesIterator.hasNext
+    if (finished) None else Some(valuesIterator.next.asInstanceOf[A])
   }
 
-  private def traverseIterator(i: Int) = {
-    if (valueIterators(i).hasNext) {
-      currentValues(i) = valueIterators(i).next
-      traversingIterator = false
-    } else {
-      finished = i == valueIterators.length - 1
-      traversingIterator = true
-      valueIterators(i) = values(i).toIterator
-      currentValues(i) = valueIterators(i).next
-    }
-  }
-
-  private def nextIteratorPosition = {
-    iteratorCounter = (iteratorCounter + 1) % valueIterators.length
-    iteratorCounter
+  private def cartesianProduct[A <: Any](l: List[List[A]]) = (l :\ List(List[A]())) {
+    (ys, xss) => xss flatMap (xs => ys map (y => y :: xs))
   }
 }
