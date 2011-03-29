@@ -17,7 +17,7 @@ class Rule(val description: String, val bind: () => Rule.RuleApplication) {
 object Rule {
   case class RuleApplication(condition: () => Boolean, execution: () => Unit)
 
-  type EvaluationContext = ThreadLocal[RuleEvaluator]
+  type EvaluationContext = ThreadLocal[RuleManipulator]
   private[hammurabi] val evaluationContext = new EvaluationContext
   def currentContext = evaluationContext.get()
 

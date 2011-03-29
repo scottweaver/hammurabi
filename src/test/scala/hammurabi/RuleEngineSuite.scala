@@ -75,7 +75,7 @@ class RuleEngineSuite extends JUnitSuite {
     }
 
     assert(joe.pos != 2)
-    RuleEngine(r) execOn WorkingMemory(Set())
+    RuleEngine(r) execOn WorkingMemory(Set(joe))
     assert(joe.pos == 2)
   }
 
