@@ -1,9 +1,11 @@
 package hammurabi
 
 import collection._
+import actors._
+
 import Rule._
 import util.Logger
-import actors._
+import util.Func._
 
 /**
  * @author Mario Fusco
@@ -23,7 +25,7 @@ private[hammurabi] abstract class RuleManipulator(workingMemory: WorkingMemory) 
   def +(item: Any) = workingMemory + item
   def -(item: Any) = workingMemory - item
 
-  def exitWith(result: Any) = {}
+  def exitWith(result: Any)
 
   protected def fetch[A](clazz: Class[A])(f: => List[A]): Option[A]
 }
@@ -32,7 +34,6 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
                   extends RuleManipulator(workingMemory) with Actor with Logger {
 
   var executedSets = Set[RuleExecutionSet]()
-  var executors: List[RuleExecutor] = _
   var currentExecutionSet: RuleExecutionSet = _
 
   var isFirstExection = true
@@ -52,29 +53,35 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
   }
 
   private def evaluate(): List[RuleExecutor] = {
+    var executors: List[RuleExecutor] = List[RuleExecutor]()
     initFirstExecution
-    evalRule
+    executors = executors +? evalRule
     isFirstExection = false
-    while (valuesCombinator.hasNext) { evalRule }
+    while (valuesCombinator.hasNext) executors = executors +? evalRule
     executors
   }
 
   private def initFirstExecution = {
     isFirstExection = true
-    executors = List[RuleExecutor]()
     valuesCombinator = new ValuesCombinator
   }
 
-  private def evalRule = {
+  private def evalRule(): Option[RuleExecutor] = {
     currentExecutionSet = new RuleExecutionSet
     inContext {
       val ruleApp = rule.bind()
       debug("EVAL " + rule + " on " + currentExecutionSet)
-      if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleApp.condition()) {
-        executedSets = executedSets + currentExecutionSet // TODO this executionSet couldn't be actually evaluated FIXME
-        executors = new RuleExecutor(rule, workingMemory, currentExecutionSet) :: executors
-      }
+      if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleApp.condition())
+        Some(new RuleExecutor(this, rule, workingMemory, currentExecutionSet))
+      else
+        None
     }
+  }
+
+  def exitWith(result: Any) = throw new IllegalStateException("Cannot exit during evaluation phase")
+
+  private[hammurabi] def registerExecution(executedSet: RuleExecutionSet) = {
+    executedSets = executedSets + executedSet
   }
 
   private def isRuleFinished = (!isFirstExection && !valuesCombinator.hasNext)
@@ -87,7 +94,7 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
   }
 }
 
-private[hammurabi] class RuleExecutor(rule: Rule, workingMemory: WorkingMemory, executionSet: RuleExecutionSet)
+private[hammurabi] class RuleExecutor(evaluator: RuleEvaluator, rule: Rule, workingMemory: WorkingMemory, executionSet: RuleExecutionSet)
                   extends RuleManipulator(workingMemory) with Logger {
 
   private val executionIterator = executionSet.toIterator
@@ -99,6 +106,7 @@ private[hammurabi] class RuleExecutor(rule: Rule, workingMemory: WorkingMemory, 
       if (ruleApp.condition()) {
         info("EXEC " + rule + " on " + executionSet)
         ruleApp.execution()
+        evaluator.registerExecution(executionSet)
       }
     }
     result

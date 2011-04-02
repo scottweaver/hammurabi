@@ -2,6 +2,9 @@ package hammurabi.util;
 
 import org.slf4j.LoggerFactory
 
+/**
+ * @author Mario Fusco
+ */
 trait Logger {
 
   private lazy val logger = {
