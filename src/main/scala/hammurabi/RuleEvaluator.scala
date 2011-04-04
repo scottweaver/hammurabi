@@ -69,9 +69,9 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
   private def evalRule(): Option[RuleExecutor] = {
     currentExecutionSet = new RuleExecutionSet
     inContext {
-      val ruleApp = rule.bind()
+      val ruleDef = rule.bind()
       debug("EVAL " + rule + " on " + currentExecutionSet)
-      if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleApp.condition())
+      if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleDef.condition())
         Some(new RuleExecutor(this, rule, workingMemory, currentExecutionSet))
       else
         None
@@ -102,10 +102,10 @@ private[hammurabi] class RuleExecutor(evaluator: RuleEvaluator, rule: Rule, work
 
   def execRule(): Option[Any] = {
     inContext {
-      val ruleApp = rule.bind()
-      if (ruleApp.condition()) {
+      val ruleDef = rule.bind()
+      if (ruleDef.condition()) {
         info("EXEC " + rule + " on " + executionSet)
-        ruleApp.execution()
+        ruleDef.execution()
         evaluator.registerExecution(executionSet)
       }
     }

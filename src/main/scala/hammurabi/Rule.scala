@@ -4,7 +4,7 @@ package hammurabi
  * @author Mario Fusco
  */
 
-class Rule(val description: String, val bind: () => Rule.RuleApplication) {
+class Rule(val description: String, val bind: () => Rule.RuleDefinition[_]) {
 
   def exec() = {
     val ruleDef = bind()
@@ -15,20 +15,20 @@ class Rule(val description: String, val bind: () => Rule.RuleApplication) {
 }
 
 object Rule {
-  case class RuleApplication(condition: () => Boolean, execution: () => Unit)
+  case class RuleDefinition[A](condition: () => Boolean, execution: () => A)
 
   type EvaluationContext = ThreadLocal[RuleManipulator]
   private[hammurabi] val evaluationContext = new EvaluationContext
   def currentContext = evaluationContext.get()
 
   def rule(s: String) = new {
-    def let(letClause: => RuleApplication) = new Rule(s, letClause _)
+    def let(letClause: => RuleDefinition[_]) = new Rule(s, letClause _)
   }
 
   def when(condition: => Boolean) = new {
-    def then(execution: => Unit) = RuleApplication(condition _, execution _)
+    def then[A](execution: => A) = RuleDefinition(condition _, execution _)
   }
-  def then(execution: => Unit) = RuleApplication(() => true, execution _)
+  def then[A](execution: => A) = RuleDefinition(() => true, execution _)
 
   implicit def toSugaredBoolean(b1: Boolean) = new {
     def and(b2: Boolean) = b1 && b2
