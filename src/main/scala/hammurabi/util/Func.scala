@@ -6,8 +6,8 @@ package hammurabi.util
 object Func {
 
   implicit def toListHelper[A](l: List[A]) = new {
-    def +? (item: Option[A]) = item match {
-      case Some(a) => a :: l
+    def +?[B <: A] (item: Option[B]) = item match {
+      case Some(b) => b :: l
       case None => l
     }
   }

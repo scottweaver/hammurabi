@@ -40,8 +40,8 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
   var valuesCombinator: ValuesCombinator = _
 
   def act() {
-    while (true) {
-      receive {
+    loop {
+      react {
         case Evaluate => try {
           sender ! EvaluationFinished(evaluate)
         } catch {
