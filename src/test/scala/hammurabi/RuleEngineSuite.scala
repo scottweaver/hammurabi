@@ -627,5 +627,46 @@ class RuleEngineSuite extends JUnitSuite {
     println(fred)
     println(bob)
   }
+
+  @Test def rulePriority = {
+    val ruleSet = Set(
+      rule ("Third rule") withSalience -1 let {
+        val s = any(kindOf[String])
+        then {
+          if (s == "Two") exitWith("Success")
+          else failWith("s must be Two and not " + s)
+        }
+      },
+
+      rule ("First rule") withSalience 1 let {
+        val s = any(kindOf[String])
+        when {
+          s == "Zero"
+        } then {
+          if (s == "Zero") {
+            remove(s)
+            produce("One")
+          }
+          else failWith("s must be Zero and not " + s)
+        }
+      },
+
+      rule ("Second rule") let {
+        val s = any(kindOf[String])
+        when {
+          s == "Zero" or s == "One"
+        } then {
+          if (s == "One") {
+            remove(s)
+            produce("Two")
+          }
+          else failWith("s must be One and not " + s)
+        }
+      }
+    )
+
+    val s = (RuleEngine(ruleSet) execOn WorkingMemory("Zero")).get
+    assertEquals("Success", s)
+  }
 }
 

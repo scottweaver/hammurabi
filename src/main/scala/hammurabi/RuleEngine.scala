@@ -47,7 +47,7 @@ class RuleEngine(rules: Traversable[Rule]) extends Actor {
         }
       }
 
-      val i = executors.toIterator
+      val i = executors.sortWith(_.salience > _.salience).toIterator
       try {
         while (i.hasNext && result == None) result = i.next.execRule
       } catch {

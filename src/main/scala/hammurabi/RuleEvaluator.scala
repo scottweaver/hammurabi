@@ -70,12 +70,17 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
     currentExecutionSet = new RuleExecutionSet
     inContext {
       val ruleDef = rule.bind()
-      debug("EVAL " + rule + " on " + currentExecutionSet)
-      if (!isRuleFinished && !executedSets.contains(currentExecutionSet) && ruleDef.condition())
-        Some(new RuleExecutor(this, rule, workingMemory, currentExecutionSet))
-      else
-        None
+      if (currentExecutionSet.isEvaluable) toRuleExecutor(ruleDef, currentExecutionSet)
+      else None
     }
+  }
+
+  private def toRuleExecutor(ruleDef: RuleDefinition[_], executionSet: RuleExecutionSet): Option[RuleExecutor] = {
+    debug("EVAL " + rule + " on " + executionSet)
+    if (!isRuleFinished && !executedSets.contains(executionSet) && ruleDef.condition())
+      Some(new RuleExecutor(this, rule, workingMemory, executionSet))
+    else
+      None
   }
 
   def exitWith(result: Any) = throw new IllegalStateException("Cannot exit during evaluation phase")
@@ -97,13 +102,15 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
 private[hammurabi] class RuleExecutor(evaluator: RuleEvaluator, rule: Rule, workingMemory: WorkingMemory, executionSet: RuleExecutionSet)
                   extends RuleManipulator(workingMemory) with Logger {
 
+  val salience = rule.salience
+
   private val executionIterator = executionSet.toIterator
   private var result: Option[Any] = None
 
   def execRule(): Option[Any] = {
     inContext {
       val ruleDef = rule.bind()
-      if (ruleDef.condition()) {
+      if (executionSet.isEvaluableOn(workingMemory) && ruleDef.condition()) {
         info("EXEC " + rule + " on " + executionSet)
         ruleDef.execution()
         evaluator.registerExecution(executionSet)
@@ -138,6 +145,10 @@ private class RuleExecutionSet {
   override def hashCode = (0 /: executionSet) (_ + _.hashCode * 13)
 
   override def toString = "[" + executionSet.map(_.getOrElse("Nothing")).mkString(", ") + "]"
+
+  def isEvaluable = !executionSet.contains(None)
+
+  def isEvaluableOn(workingMemory: WorkingMemory) = executionSet forall (item => workingMemory.contains(item.get))
 }
 
 private class ValuesCombinator {

@@ -4,7 +4,7 @@ package hammurabi
  * @author Mario Fusco
  */
 
-class Rule(val description: String, val bind: () => Rule.RuleDefinition[_]) {
+case class Rule(description: String, bind: () => RuleDefinition[_], salience: Int = 0) {
 
   def exec() = {
     val ruleDef = bind()
@@ -14,15 +14,19 @@ class Rule(val description: String, val bind: () => Rule.RuleDefinition[_]) {
   override def toString = "Rule: \"" + description + "\""
 }
 
+private[hammurabi] case class RuleDefinition[A](condition: () => Boolean, execution: () => A)
+
 object Rule {
-  case class RuleDefinition[A](condition: () => Boolean, execution: () => A)
 
   type EvaluationContext = ThreadLocal[RuleManipulator]
   private[hammurabi] val evaluationContext = new EvaluationContext
   def currentContext = evaluationContext.get()
 
   def rule(s: String) = new {
-    def let(letClause: => RuleDefinition[_]) = new Rule(s, letClause _)
+    def let(letClause: => RuleDefinition[_]) = Rule(s, letClause _)
+    def withSalience(salience: Int) = new {
+      def let(letClause: => RuleDefinition[_]) = Rule(s, letClause _, salience)
+    }
   }
 
   def when(condition: => Boolean) = new {

@@ -51,6 +51,8 @@ class WorkingMemory(var workingSet: List[_]) extends Logger {
     this
   }
 
+  def contains(item: Any) = workingSet contains item
+
   private def addToInternalWorkingSets(item: Any) =
     modifyInternalWorkingSets(item)((objects, item) => item :: objects)
 
