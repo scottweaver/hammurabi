@@ -14,11 +14,12 @@ class WorkingMemory(var workingSet: List[_]) extends Logger {
   val workingSetsByType = new HashMap[Class[_], List[_]]
 
   def all[A](clazz: Class[A]): List[A] = {
-    (workingSetsByType get clazz match {
+    val c = normalizeClass(clazz)
+    (workingSetsByType get c match {
       case objects: Some[_] => objects get
       case None => {
-        val t = findObjectsOfClass(clazz)
-        workingSetsByType += (clazz -> t)
+        val t = findObjectsOfClass(c)
+        workingSetsByType += (c -> t)
         t
       }
     }).asInstanceOf[List[A]]
@@ -61,7 +62,7 @@ class WorkingMemory(var workingSet: List[_]) extends Logger {
 
   private def modifyInternalWorkingSets(item: Any)(f: (List[_], Any) => List[_]) = {
     workingSet = f(workingSet, item)
-    val clazz = item.asInstanceOf[AnyRef].getClass
+    val clazz = normalizedClassOf(item)
     workingSetsByType += (clazz ->
       (workingSetsByType get clazz match {
         case Some(objects) => f(objects, item)
@@ -70,7 +71,29 @@ class WorkingMemory(var workingSet: List[_]) extends Logger {
     )
   }
 
-  private def findObjectsOfClass[A](clazz: Class[A]) = workingSet filter (_.asInstanceOf[AnyRef].getClass() == clazz)
+  private def findObjectsOfClass[A](clazz: Class[A]) = {
+    workingSet filter (_.asInstanceOf[AnyRef].getClass() == clazz)
+  }
+
+  private def normalizedClassOf(item: Any): Class[_] =
+    if (classOf[AnyRef].isInstance(item)) item.asInstanceOf[AnyRef].getClass
+    else if (classOf[Int].isInstance(item)) classOf[java.lang.Integer]
+    else if (classOf[Long].isInstance(item)) classOf[java.lang.Long]
+    else if (classOf[Double].isInstance(item)) classOf[java.lang.Double]
+    else if (classOf[Float].isInstance(item)) classOf[java.lang.Float]
+    else if (classOf[Char].isInstance(item)) classOf[java.lang.Character]
+    else if (classOf[Byte].isInstance(item)) classOf[java.lang.Byte]
+    else classOf[java.lang.Boolean]
+
+  private def normalizeClass(c: Class[_]): Class[_] =
+    if (classOf[AnyRef].isAssignableFrom((c))) c
+    else if (c == classOf[Int]) classOf[java.lang.Integer]
+    else if (c == classOf[Long]) classOf[java.lang.Long]
+    else if (c == classOf[Double]) classOf[java.lang.Double]
+    else if (c == classOf[Float]) classOf[java.lang.Float]
+    else if (c == classOf[Char]) classOf[java.lang.Character]
+    else if (c == classOf[Byte]) classOf[java.lang.Byte]
+    else classOf[java.lang.Boolean]
 }
 
 object WorkingMemory {
