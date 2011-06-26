@@ -6,11 +6,15 @@ import sbt._
 
 class HammurabiProject(info: ProjectInfo) extends DefaultProject(info) {
 
-  val logbackCore = "ch.qos.logback" % "logback-core" % "0.9.22"
-  val logbackClassic = "ch.qos.logback" % "logback-classic" % "0.9.22"
+  val logbackCore = "ch.qos.logback" % "logback-core" % "0.9.28"
+  val logbackClassic = "ch.qos.logback" % "logback-classic" % "0.9.28"
 
   val junit = "junit" % "junit" % "4.7" % "test"
-  val scalatest = "org.scalatest" % "scalatest" % "1.3" % "test"
+  val scalatest = "org.scalatest" %% "scalatest" % "1.4.1" % "test"
+
+  override def managedStyle = ManagedStyle.Maven
+  val publishTo = "Hammurabi repository" at "dav:https://hammurabi.googlecode.com/svn/repo/releases"
+  Credentials(Path.userHome / ".ivy2" / "credentials.txt", log)
 
   override def pomExtra =
     <description>The Scala rule engine</description>

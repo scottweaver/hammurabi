@@ -1,7 +1,7 @@
 package hammurabi
 
-import collection._
-import actors._
+import scala.util.control.Exception._
+import scala.collection._
 
 import Rule._
 import util.Logger
@@ -31,7 +31,7 @@ private[hammurabi] abstract class RuleManipulator(workingMemory: WorkingMemory) 
 }
 
 private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
-                  extends RuleManipulator(workingMemory) with Actor with Logger {
+                  extends RuleManipulator(workingMemory) with Logger {
 
   var executedSets = Set[RuleExecutionSet]()
   var currentExecutionSet: RuleExecutionSet = _
@@ -39,26 +39,15 @@ private[hammurabi] class RuleEvaluator(rule: Rule, workingMemory: WorkingMemory)
   var isFirstExection = true
   var valuesCombinator: ValuesCombinator = _
 
-  def act() {
-    loop {
-      react {
-        case Evaluate => try {
-          sender ! EvaluationFinished(evaluate)
-        } catch {
-          case ex => sender ! EvaluationFailed(ex)
-        }
-        case Terminate => exit
-      }
+  def evaluate(): Either[Throwable, List[RuleExecutor]] = {
+    allCatch[List[RuleExecutor]] either {
+      var executors: List[RuleExecutor] = List[RuleExecutor]()
+      initFirstExecution
+      executors = executors +? evalRule
+      isFirstExection = false
+      while (valuesCombinator.hasNext) executors = executors +? evalRule
+      executors
     }
-  }
-
-  private def evaluate(): List[RuleExecutor] = {
-    var executors: List[RuleExecutor] = List[RuleExecutor]()
-    initFirstExecution
-    executors = executors +? evalRule
-    isFirstExection = false
-    while (valuesCombinator.hasNext) executors = executors +? evalRule
-    executors
   }
 
   private def initFirstExecution = {
