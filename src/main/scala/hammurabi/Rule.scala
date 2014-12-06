@@ -1,5 +1,10 @@
 package hammurabi
 
+import scala.reflect.runtime.{universe => ru}
+import ru._
+import hammurabi.util.Reflect._
+
+
 /**
  * @author Mario Fusco
  */
@@ -39,7 +44,7 @@ object Rule {
     def or(b2: Boolean) = b1 || b2
   }
 
-  def kindOf[A](implicit manifest: Manifest[A]) = manifest.erasure.asInstanceOf[Class[A]]
+  def kindOf[A](implicit ttag: TypeTag[A]): Class[A] = ttag
   def any[A](clazz: Class[A]): A = currentContext any clazz getOrElse (null.asInstanceOf[A])
   implicit def toConditionedAny[A](clazz: Class[A]) = new {
     def having(condition: A => Boolean): A = currentContext.anyHaving(clazz)(condition) getOrElse (null.asInstanceOf[A])

@@ -1,13 +1,17 @@
 package hammurabi
 
 import collection.mutable.HashMap
-import util.Logger
+import hammurabi.util.{Logger}
 
 /**
  * @author Mario Fusco
  */
 
 class WorkingMemory(var workingSet: List[_] = Nil) extends Logger {
+  import scala.reflect.runtime.{universe => ru}
+  import ru._
+  import hammurabi.util.Reflect._
+
 
   val workingSetsByType = new HashMap[Class[_], List[_]]
 
@@ -23,15 +27,15 @@ class WorkingMemory(var workingSet: List[_] = Nil) extends Logger {
     }).asInstanceOf[List[A]]
   }
 
-  def first[A](implicit manifest: Manifest[A]): Option[A] =
-    firstOrNone(all(manifest.erasure.asInstanceOf[Class[A]]))
+  def first[A](implicit ttag: TypeTag[A]): Option[A] =
+    firstOrNone(all(ttag))
 
   def allHaving[A](clazz: Class[A])(condition: A => Boolean): List[A] = {
     all(clazz) filter condition
   }
 
-  def firstHaving[A](condition: A => Boolean)(implicit manifest: Manifest[A]): Option[A] =
-    firstOrNone(allHaving(manifest.erasure.asInstanceOf[Class[A]])(condition))
+  def firstHaving[A](condition: A => Boolean)(implicit ttag: TypeTag[A]): Option[A] =
+    firstOrNone(allHaving(ttag)(condition))
 
   private def firstOrNone[A](list: List[A]): Option[A] = list match {
     case x :: xs => Some(x)

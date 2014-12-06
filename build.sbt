@@ -10,6 +10,7 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 libraryDependencies ++= {
   val akkaV = "2.3.6"
   Seq(
+    "org.scala-lang"     %    "scala-reflect" %  "2.11.2",
     "com.typesafe.akka" %% "akka-actor"      % akkaV,
     "com.typesafe.akka" %% "akka-testkit"    % akkaV,
     "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
