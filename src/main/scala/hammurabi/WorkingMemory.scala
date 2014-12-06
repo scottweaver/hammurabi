@@ -7,9 +7,7 @@ import util.Logger
  * @author Mario Fusco
  */
 
-class WorkingMemory(var workingSet: List[_]) extends Logger {
-
-  def this() = this(Nil)
+class WorkingMemory(var workingSet: List[_] = Nil) extends Logger {
 
   val workingSetsByType = new HashMap[Class[_], List[_]]
 
